@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { Tag, Product, ProductTag } = require('../../models');
+const { Tag, Product, ProductTag, Category } = require('../../models');
 
 // The `/api/tags` endpoint
 
@@ -7,12 +7,24 @@ router.get('/', (req, res) => {
   // find all tags
   // be sure to include its associated Product data
 
-  Tag.findAll({})
-  .then(dbTagData => res.json(dbTagData))
-  .catch(err => {
-    console.log(err);
-    res.status(500).json(err)
+  Tag.findAll({
+    include: [
+      {
+        model: Product,
+        through: ProductTag,
+        attributes: ['id', 'product_name', 'price', 'stock'],
+        include: [{
+          model: Category,
+          attributes: ['category_name']
+        }]
+      }
+    ]
   })
+    .then(dbTagData => res.json(dbTagData))
+    .catch(err => {
+      console.log(err);
+      res.status(500).json(err)
+    })
 });
 
 router.get('/:id', (req, res) => {
@@ -20,7 +32,18 @@ router.get('/:id', (req, res) => {
   // be sure to include its associated Product data
 
   Tag.findOne({
-    where: { id: req.params.id }
+    where: { id: req.params.id },
+    include: [
+      {
+        model: Product,
+        through: ProductTag,
+        attributes: ['id', 'product_name', 'price', 'stock'],
+        include: [{
+          model: Category,
+          attributes: ['category_name']
+        }]
+      }
+    ]
   })
     .then(dbTagData => {
       if (!dbTagData) {
@@ -55,8 +78,8 @@ router.put('/:id', (req, res) => {
     req.body, { where: { id: req.params.id } }
   )
     .then(dbTagData => {
-      if(!dbTagData[0]){
-        res.status(404).json({message:'No tag found with this id!'});
+      if (!dbTagData[0]) {
+        res.status(404).json({ message: 'No tag found with this id!' });
         return;
       }
       res.json(dbTagData);
@@ -70,13 +93,13 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   // delete on tag by its `id` value
   Tag.destroy({
-    where:{id:req.params.id}
+    where: { id: req.params.id }
   })
-  .then(dbTagData => res.json(dbTagData))
-  .catch(err =>{
-    console.log(err);
-    res.status(400).json(err);
-  })
+    .then(dbTagData => res.json(dbTagData))
+    .catch(err => {
+      console.log(err);
+      res.status(400).json(err);
+    })
 });
 
 module.exports = router;
